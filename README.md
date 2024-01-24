@@ -30,21 +30,21 @@ The application follows these steps to provide the information to the user:
 To run this application, you'll need Node.js and npm installed. Follow these steps:
 
 1. Clone the repository:
-   \```bash
+   ```bash
    git clone https://github.com/matthelton/rthey.git
-   \```
+   ```
 2. Navigate to the project directory:
-   \```bash
+   ```bash
    cd your-repo-name
-   \```
+   ```
 3. Install the dependencies:
-   \```bash
+   ```bash
    npm install
-   \```
+   ```
 4. Start the application:
-   \```bash
+   ```bash
    npm start
-   \```
+   ```
 
 ## Usage
 
