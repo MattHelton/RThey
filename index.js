@@ -33,21 +33,34 @@ const getShowCast = async (showId, seasonNumber, episodeNumber) => {
 };
 
 const getActorFilmography = async (actorId) => {
-    const response = await axios.get(`${BASE_URL}/person/${actorId}/movie_credits?api_key=${API_KEY}`);
-    return response.data.cast;
+    const movieResponse = await axios.get(`${BASE_URL}/person/${actorId}/movie_credits?api_key=${API_KEY}`);
+    const tvResponse = await axios.get(`${BASE_URL}/person/${actorId}/tv_credits?api_key=${API_KEY}`);
+    return [
+        ...movieResponse.data.cast.map(film => ({...film, type: 'Movie'})),
+        ...tvResponse.data.cast.map(show => ({...show, type: 'TV Show'}))
+    ];
 };
 
 const displayFilmographyTable = async (filmographies, cast) => {
-    // Aggregate popularity scores for each project
-    const popularityMap = filmographies.flat().reduce((acc, film) => {
-        acc[film.title] = (acc[film.title] || 0) + film.popularity;
+    // Create a map to count how many actors share each film and sum their popularity
+    const sharedFilmMap = filmographies.flat().reduce((acc, film) => {
+        const key = `${film.title} (${film.type})`;
+        if (!acc[key]) {
+            acc[key] = { count: 0, popularity: 0 };
+        }
+        acc[key].count += 1;
+        acc[key].popularity += film.popularity;
         return acc;
     }, {});
 
-    // Create a sorted array of projects based on popularity
-    const sortedProjects = Object.keys(popularityMap)
-        .map(title => ({ title, popularity: popularityMap[title] }))
-        .sort((a, b) => b.popularity - a.popularity)
+    // Sort the projects based on the number of shared actors, then by popularity
+    const sortedProjects = Object.entries(sharedFilmMap)
+        .map(([key, data]) => ({
+            title: key,
+            count: data.count,
+            popularity: data.popularity
+        }))
+        .sort((a, b) => b.count - a.count || b.popularity - a.popularity)
         .map(item => item.title);
 
     const { project } = await inquirer.prompt([
@@ -59,13 +72,17 @@ const displayFilmographyTable = async (filmographies, cast) => {
         },
     ]);
 
+    // Extract the title and type from the selected project
+    const [selectedTitle, selectedType] = project.match(/^(.*) \((Movie|TV Show)\)$/).slice(1);
+
     const table = filmographies
         .flat()
-        .filter(film => film.title === project)
+        .filter(film => film.title === selectedTitle && film.type === selectedType)
         .map(film => ({
             Actor: film.actorName,
             CharacterInOriginal: film.characterInOriginal,
             CharacterInProject: film.character,
+            Type: film.type
         }));
 
     console.table(table);
